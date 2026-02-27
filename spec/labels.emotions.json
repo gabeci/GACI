@@ -1,0 +1,54 @@
+{
+  "version": "0.1",
+  "categories": [
+    {"id": "joy", "text": {"ko": "기쁨", "en": "Joy"}},
+    {"id": "calm", "text": {"ko": "평온", "en": "Calm"}},
+    {"id": "sadness", "text": {"ko": "슬픔", "en": "Sadness"}},
+    {"id": "anger", "text": {"ko": "분노", "en": "Anger"}},
+    {"id": "anxiety", "text": {"ko": "불안", "en": "Anxiety"}},
+    {"id": "loneliness", "text": {"ko": "외로움", "en": "Loneliness"}},
+    {"id": "shame_guilt", "text": {"ko": "수치/죄책", "en": "Shame & Guilt"}},
+    {"id": "burnout", "text": {"ko": "무기력/소진", "en": "Exhaustion & Burnout"}}
+  ],
+  "labels": [
+    {"id": "excited", "category_id": "joy", "text": {"ko": "설렘", "en": "Excited"}},
+    {"id": "satisfied", "category_id": "joy", "text": {"ko": "만족", "en": "Satisfied"}},
+    {"id": "grateful", "category_id": "joy", "text": {"ko": "감사", "en": "Grateful"}},
+    {"id": "confident", "category_id": "joy", "text": {"ko": "자신감", "en": "Confident"}},
+
+    {"id": "grounded", "category_id": "calm", "text": {"ko": "안정", "en": "Grounded"}},
+    {"id": "relaxed", "category_id": "calm", "text": {"ko": "편안", "en": "Relaxed"}},
+    {"id": "focused", "category_id": "calm", "text": {"ko": "몰입", "en": "Focused"}},
+    {"id": "neutral", "category_id": "calm", "text": {"ko": "담담", "en": "Neutral"}},
+
+    {"id": "hurt", "category_id": "sadness", "text": {"ko": "서운함", "en": "Hurt"}},
+    {"id": "loss", "category_id": "sadness", "text": {"ko": "상실감", "en": "Loss"}},
+    {"id": "down", "category_id": "sadness", "text": {"ko": "우울감", "en": "Down"}},
+    {"id": "emptiness", "category_id": "sadness", "text": {"ko": "공허함", "en": "Emptiness"}},
+
+    {"id": "irritated", "category_id": "anger", "text": {"ko": "짜증", "en": "Irritated"}},
+    {"id": "unfairness", "category_id": "anger", "text": {"ko": "억울함", "en": "Unfairness"}},
+    {"id": "outraged", "category_id": "anger", "text": {"ko": "분개", "en": "Outraged"}},
+    {"id": "defensive", "category_id": "anger", "text": {"ko": "경계심", "en": "Defensive"}},
+
+    {"id": "restless", "category_id": "anxiety", "text": {"ko": "초조함", "en": "Restless"}},
+    {"id": "worried", "category_id": "anxiety", "text": {"ko": "걱정", "en": "Worried"}},
+    {"id": "afraid", "category_id": "anxiety", "text": {"ko": "두려움", "en": "Afraid"}},
+    {"id": "pressured", "category_id": "anxiety", "text": {"ko": "압박감", "en": "Pressured"}},
+
+    {"id": "isolated", "category_id": "loneliness", "text": {"ko": "고립감", "en": "Isolated"}},
+    {"id": "longing", "category_id": "loneliness", "text": {"ko": "그리움", "en": "Longing"}},
+    {"id": "left_out", "category_id": "loneliness", "text": {"ko": "소외감", "en": "Left out"}},
+    {"id": "need_connection", "category_id": "loneliness", "text": {"ko": "연결 욕구", "en": "Need connection"}},
+
+    {"id": "guilty", "category_id": "shame_guilt", "text": {"ko": "죄책감", "en": "Guilty"}},
+    {"id": "ashamed", "category_id": "shame_guilt", "text": {"ko": "부끄러움", "en": "Ashamed"}},
+    {"id": "self_blame", "category_id": "shame_guilt", "text": {"ko": "자책", "en": "Self-blame"}},
+    {"id": "worthless", "category_id": "shame_guilt", "text": {"ko": "무가치감", "en": "Worthless"}},
+
+    {"id": "tired", "category_id": "burnout", "text": {"ko": "지침", "en": "Tired"}},
+    {"id": "burned_out", "category_id": "burnout", "text": {"ko": "번아웃", "en": "Burned out"}},
+    {"id": "unmotivated", "category_id": "burnout", "text": {"ko": "무기력", "en": "Unmotivated"}},
+    {"id": "giving_up", "category_id": "burnout", "text": {"ko": "포기감", "en": "Giving up"}}
+  ]
+}
