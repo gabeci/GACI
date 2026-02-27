@@ -1,0 +1,46 @@
+{
+  "version": "0.1",
+  "groups": [
+    {"id": "self", "text": {"ko": "자기", "en": "Self"}},
+    {"id": "relationship", "text": {"ko": "관계", "en": "Relationship"}},
+    {"id": "work", "text": {"ko": "일/성과", "en": "Work/Performance"}},
+    {"id": "life", "text": {"ko": "생활/환경", "en": "Life/Environment"}},
+    {"id": "direction", "text": {"ko": "정체/방향", "en": "Identity/Direction"}},
+    {"id": "mechanics", "text": {"ko": "감정 메커닉", "en": "Emotion Mechanics"}}
+  ],
+  "labels": [
+    {"id": "value_conflict", "group_id": "self", "text": {"ko": "가치 혼란", "en": "Value conflict"}},
+    {"id": "goal_unclear", "group_id": "self", "text": {"ko": "목표 흐림", "en": "Goal unclear"}},
+    {"id": "excess_self_criticism", "group_id": "self", "text": {"ko": "자기비판 과다", "en": "Excess self-criticism"}},
+    {"id": "loss_of_control", "group_id": "self", "text": {"ko": "통제감 상실", "en": "Loss of control"}},
+    {"id": "shaken_self_worth", "group_id": "self", "text": {"ko": "자존감 흔들림", "en": "Shaken self-worth"}},
+
+    {"id": "misunderstanding", "group_id": "relationship", "text": {"ko": "오해/단절", "en": "Misunderstanding or disconnection"}},
+    {"id": "rejection_exclusion", "group_id": "relationship", "text": {"ko": "거절/소외", "en": "Rejection or exclusion"}},
+    {"id": "boundary_issue", "group_id": "relationship", "text": {"ko": "경계선 문제", "en": "Boundary issue"}},
+    {"id": "expectation_mismatch", "group_id": "relationship", "text": {"ko": "기대 불일치", "en": "Expectation mismatch"}},
+    {"id": "trust_rupture", "group_id": "relationship", "text": {"ko": "신뢰 손상", "en": "Trust rupture"}},
+
+    {"id": "overload", "group_id": "work", "text": {"ko": "과부하", "en": "Overload"}},
+    {"id": "priority_chaos", "group_id": "work", "text": {"ko": "우선순위 혼란", "en": "Priority chaos"}},
+    {"id": "failure_shock", "group_id": "work", "text": {"ko": "실패/실수 충격", "en": "Failure or mistake"}},
+    {"id": "comparison_pressure", "group_id": "work", "text": {"ko": "비교/평가 압박", "en": "Comparison pressure"}},
+    {"id": "loss_of_meaning_work", "group_id": "work", "text": {"ko": "의미 상실(일)", "en": "Loss of meaning at work"}},
+
+    {"id": "sleep_condition", "group_id": "life", "text": {"ko": "수면/컨디션", "en": "Sleep or condition"}},
+    {"id": "routine_breakdown", "group_id": "life", "text": {"ko": "루틴 붕괴", "en": "Routine breakdown"}},
+    {"id": "environment_clutter", "group_id": "life", "text": {"ko": "공간/정리 문제", "en": "Environment clutter"}},
+    {"id": "financial_worry", "group_id": "life", "text": {"ko": "재정 불안", "en": "Financial worry"}},
+    {"id": "time_scarcity", "group_id": "life", "text": {"ko": "시간 부족", "en": "Time scarcity"}},
+
+    {"id": "stagnation", "group_id": "direction", "text": {"ko": "성장 정체", "en": "Stagnation"}},
+    {"id": "regret_choices", "group_id": "direction", "text": {"ko": "선택 후회", "en": "Regret about choices"}},
+    {"id": "transition_phase", "group_id": "direction", "text": {"ko": "변화/전환기", "en": "Transition phase"}},
+    {"id": "lack_of_belonging", "group_id": "direction", "text": {"ko": "소속감 결핍", "en": "Lack of belonging"}},
+    {"id": "meaning_vacuum", "group_id": "direction", "text": {"ko": "의미 공백", "en": "Meaning vacuum"}},
+
+    {"id": "emotional_overload", "group_id": "mechanics", "text": {"ko": "감정 과부하", "en": "Emotional overload"}},
+    {"id": "avoidance", "group_id": "mechanics", "text": {"ko": "회피/미루기", "en": "Avoidance or procrastination"}},
+    {"id": "need_recovery", "group_id": "mechanics", "text": {"ko": "회복 필요", "en": "Need recovery"}}
+  ]
+}

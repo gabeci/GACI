@@ -1,0 +1,39 @@
+{
+  "version": "0.1",
+  "tags": [
+    {"id": "work", "text": {"ko": "업무", "en": "Work"}},
+    {"id": "study", "text": {"ko": "학습", "en": "Study"}},
+    {"id": "exercise", "text": {"ko": "운동", "en": "Exercise"}},
+    {"id": "sleep", "text": {"ko": "수면", "en": "Sleep"}},
+    {"id": "health", "text": {"ko": "건강", "en": "Health"}},
+    {"id": "food", "text": {"ko": "식사", "en": "Food"}},
+    {"id": "family", "text": {"ko": "가족", "en": "Family"}},
+    {"id": "partner", "text": {"ko": "연인", "en": "Partner"}},
+    {"id": "friends", "text": {"ko": "친구", "en": "Friends"}},
+    {"id": "colleagues", "text": {"ko": "동료", "en": "Colleagues"}},
+    {"id": "manager", "text": {"ko": "상사", "en": "Manager"}},
+    {"id": "relationships", "text": {"ko": "인간관계 전반", "en": "Relationships"}},
+    {"id": "money", "text": {"ko": "돈", "en": "Money"}},
+    {"id": "time", "text": {"ko": "시간", "en": "Time"}},
+    {"id": "future", "text": {"ko": "미래", "en": "Future"}},
+    {"id": "past", "text": {"ko": "과거", "en": "Past"}},
+    {"id": "decision", "text": {"ko": "결정/선택", "en": "Decision"}},
+    {"id": "performance", "text": {"ko": "성과/평가", "en": "Performance"}},
+    {"id": "comparison", "text": {"ko": "비교", "en": "Comparison"}},
+    {"id": "conflict", "text": {"ko": "갈등", "en": "Conflict"}},
+    {"id": "expectations", "text": {"ko": "기대", "en": "Expectations"}},
+    {"id": "boundaries", "text": {"ko": "경계선", "en": "Boundaries"}},
+    {"id": "loneliness", "text": {"ko": "외로움", "en": "Loneliness"}},
+    {"id": "habits", "text": {"ko": "습관/루틴", "en": "Habits & routine"}},
+    {"id": "focus", "text": {"ko": "집중/산만", "en": "Focus & distraction"}},
+    {"id": "rest", "text": {"ko": "휴식", "en": "Rest"}},
+    {"id": "hobby", "text": {"ko": "취미", "en": "Hobby"}},
+    {"id": "environment_change", "text": {"ko": "이사/이민/환경변화", "en": "Environment change"}},
+    {"id": "social_media", "text": {"ko": "소셜미디어", "en": "Social media"}},
+    {"id": "other", "text": {"ko": "기타", "en": "Other"}}
+  ],
+  "ui": {
+    "max_select": 3,
+    "recommended_order": ["work", "relationships", "time", "sleep", "health", "money", "comparison", "conflict", "habits", "social_media"]
+  }
+}

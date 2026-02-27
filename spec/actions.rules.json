@@ -1,0 +1,47 @@
+{
+  "version": "0.1",
+  "rules": {
+    "intensity_override": { "threshold": 4, "force_action_type": "breath_reset" },
+    "meaning_to_action_type": {
+      "value_conflict": "value_ping",
+      "goal_unclear": "value_ping",
+      "loss_of_meaning_work": "value_ping",
+      "meaning_vacuum": "value_ping",
+
+      "overload": "micro_order",
+      "priority_chaos": "micro_order",
+      "time_scarcity": "micro_order",
+      "routine_breakdown": "micro_order",
+      "environment_clutter": "micro_order",
+
+      "excess_self_criticism": "cognitive_reframe",
+      "loss_of_control": "cognitive_reframe",
+      "shaken_self_worth": "cognitive_reframe",
+      "regret_choices": "cognitive_reframe",
+      "comparison_pressure": "cognitive_reframe",
+      "failure_shock": "cognitive_reframe",
+      "misunderstanding": "cognitive_reframe",
+      "boundary_issue": "cognitive_reframe",
+      "expectation_mismatch": "cognitive_reframe",
+      "trust_rupture": "cognitive_reframe",
+
+      "sleep_condition": "breath_reset",
+      "need_recovery": "breath_reset",
+      "emotional_overload": "breath_reset",
+
+      "avoidance": "micro_order",
+      "financial_worry": "cognitive_reframe",
+      "transition_phase": "value_ping",
+      "stagnation": "value_ping",
+      "lack_of_belonging": "cognitive_reframe",
+      "rejection_exclusion": "cognitive_reframe"
+    },
+    "tag_bias": {
+      "breath_reset": ["sleep", "health", "exercise", "rest"],
+      "micro_order": ["work", "performance", "time", "habits", "focus"],
+      "cognitive_reframe": ["comparison", "conflict", "expectations", "boundaries"]
+    },
+    "anti_repeat": { "window_sessions": 3, "max_same_type_in_window": 2, "except_when_intensity_override": true },
+    "no_auto_connection": { "connect_optional_action_types": ["connect_optional"], "allowed_only_when": "user_clicked_connect_optional" }
+  }
+}
