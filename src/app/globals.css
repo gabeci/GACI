@@ -12,3 +12,43 @@ body {
   background: #f3f4f6;
   color: #111827;
 }
+
+@keyframes self-star-pulse {
+  0% {
+    transform: scale(0.94);
+    opacity: 0.4;
+  }
+  55% {
+    transform: scale(1.08);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1.26);
+    opacity: 0;
+  }
+}
+
+@keyframes self-star-drift {
+  0% {
+    transform: translate(0px, 0px);
+  }
+  30% {
+    transform: translate(0.75px, -1px);
+  }
+  65% {
+    transform: translate(-0.85px, 0.65px);
+  }
+  100% {
+    transform: translate(0px, 0px);
+  }
+}
+
+.self-star-pulse {
+  transform-origin: center;
+  animation: self-star-pulse 2.8s ease-out infinite;
+}
+
+.self-star-drift {
+  transform-origin: center;
+  animation: self-star-drift 1.8s ease-in-out infinite;
+}

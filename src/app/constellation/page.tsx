@@ -13,10 +13,12 @@ type JournalEntry = {
 type PositionedEntry = JournalEntry & {
   x: number;
   y: number;
+  ring: number;
 };
 
 const JOURNAL_STORAGE_KEY = "gaci-journal-entries";
 const STARS_STORAGE_KEY = "gaci-constellation-stars";
+const CENTER = 150;
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString([], {
@@ -41,16 +43,16 @@ function getEntryTitle(content: string) {
   return words.length < normalized.length ? `${words}...` : words;
 }
 
-function positionFor(entry: JournalEntry, index: number, total: number): { x: number; y: number } {
+function positionFor(entry: JournalEntry, index: number, total: number): { x: number; y: number; ring: number } {
   const hash = Array.from(entry.id).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const angle = ((Math.PI * 2) / Math.max(total, 1)) * index + (hash % 13) * 0.05;
-  const ring = 55 + (hash % 35);
-  const cx = 150;
-  const cy = 150;
+  const tagWeight = Math.min(entry.tags.length, 3) * 6;
+  const angle = ((Math.PI * 2) / Math.max(total, 1)) * index + (hash % 19) * 0.045;
+  const ring = 64 + (hash % 36) - tagWeight;
 
   return {
-    x: cx + Math.cos(angle) * ring,
-    y: cy + Math.sin(angle) * ring
+    x: CENTER + Math.cos(angle) * ring,
+    y: CENTER + Math.sin(angle) * ring,
+    ring
   };
 }
 
@@ -119,10 +121,10 @@ export default function ConstellationPage() {
 
   return (
     <MobileShell>
-      <section className="space-y-4 pb-4">
-        <header className="space-y-1">
+      <section className="space-y-5 pb-5">
+        <header className="space-y-1.5">
           <h1 className="text-2xl font-semibold text-[#003D7C]">Constellation</h1>
-          <p className="text-sm text-[#8A704C]">Your life-trajectory map of sparks and promoted stars.</p>
+          <p className="text-sm text-[#8A704C]">Your life-trajectory map of sparks, stars, and your central self field.</p>
         </header>
 
         <ul className="flex flex-wrap gap-2">
@@ -154,24 +156,33 @@ export default function ConstellationPage() {
             </p>
           ) : (
             <svg aria-label="Constellation map" className="h-[320px] w-full" viewBox="0 0 300 300">
-              {positionedEntries.map((entry, index) => {
-                const nextEntry = positionedEntries[index + 1];
-                if (!nextEntry) {
-                  return null;
-                }
+              <defs>
+                <radialGradient id="selfGlow" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#FFE7A8" stopOpacity="0.95" />
+                  <stop offset="55%" stopColor="#FFD166" stopOpacity="0.42" />
+                  <stop offset="100%" stopColor="#FFD166" stopOpacity="0" />
+                </radialGradient>
+                <radialGradient id="fieldGradient" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#D7E6FF" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#D7E6FF" stopOpacity="0" />
+                </radialGradient>
+              </defs>
 
-                return (
-                  <line
-                    key={`${entry.id}-line`}
-                    stroke="rgba(255,255,255,0.22)"
-                    strokeWidth="1"
-                    x1={entry.x}
-                    x2={nextEntry.x}
-                    y1={entry.y}
-                    y2={nextEntry.y}
-                  />
-                );
-              })}
+              {positionedEntries.map((entry) => (
+                <circle
+                  key={`${entry.id}-field`}
+                  cx={entry.x}
+                  cy={entry.y}
+                  fill="url(#fieldGradient)"
+                  r={entry.ring < 75 ? 24 : 18}
+                />
+              ))}
+
+              <g className="self-star-drift">
+                <circle className="self-star-pulse" cx={CENTER} cy={CENTER} fill="#FFD166" opacity="0.45" r="28" />
+                <circle cx={CENTER} cy={CENTER} fill="url(#selfGlow)" r="22" />
+                <circle cx={CENTER} cy={CENTER} fill="#FFD166" r="11" stroke="#FFF3CC" strokeWidth="2" />
+              </g>
 
               {positionedEntries.map((entry) => {
                 const isStar = Boolean(starById[entry.id]);
@@ -183,16 +194,32 @@ export default function ConstellationPage() {
                       cy={entry.y}
                       fill={isStar ? "#FFD166" : "#D7E6FF"}
                       onClick={() => setActiveEntry(entry)}
-                      r={isStar ? 6.5 : 4.5}
+                      r={isStar ? 7 : 4}
                       stroke={isStar ? "#FFF3CC" : "#ffffff"}
-                      strokeWidth="1.5"
+                      strokeWidth={isStar ? 2 : 1.4}
                       style={{ cursor: "pointer" }}
                     />
+                    {isStar ? (
+                      <circle
+                        cx={entry.x}
+                        cy={entry.y}
+                        fill="none"
+                        onClick={() => setActiveEntry(entry)}
+                        r={10}
+                        stroke="rgba(255,243,204,0.5)"
+                        strokeWidth="1.2"
+                        style={{ cursor: "pointer" }}
+                      />
+                    ) : null}
                   </g>
                 );
               })}
             </svg>
           )}
+
+          <div className="mt-3 rounded-2xl border border-white/20 bg-white/10 px-3 py-2 text-xs text-white/90">
+            Self Star anchors the field. Sparks cluster by shared felt-state gravity. Promoted Stars hold brighter pull.
+          </div>
         </div>
       </section>
 

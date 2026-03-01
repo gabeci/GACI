@@ -10,6 +10,8 @@ type JournalEntry = {
   createdAt: string;
 };
 
+type AlignmentState = "Direction" | "Friction" | "Recovery";
+
 const STORAGE_KEY = "gaci-journal-entries";
 const MAX_TAGS = 3;
 const tagOptions = ["Calm", "Anxious", "Grateful", "Focused", "Hopeful", "Overwhelmed"];
@@ -21,6 +23,30 @@ function formatDate(value: string) {
     hour: "numeric",
     minute: "2-digit"
   });
+}
+
+function inferAlignmentState(entry: JournalEntry): AlignmentState {
+  const text = `${entry.content} ${entry.tags.join(" ")}`.toLowerCase();
+
+  const directionWords = ["clear", "focused", "ready", "hope", "grateful", "steady", "aligned"];
+  const frictionWords = ["stuck", "overwhelmed", "anxious", "heavy", "blocked", "confused", "tense"];
+  const recoveryWords = ["recover", "reset", "again", "breathe", "pause", "repair", "restart"];
+
+  const includesAny = (words: string[]) => words.some((word) => text.includes(word));
+
+  if (includesAny(frictionWords)) {
+    return "Friction";
+  }
+
+  if (includesAny(recoveryWords)) {
+    return "Recovery";
+  }
+
+  if (includesAny(directionWords)) {
+    return "Direction";
+  }
+
+  return "Direction";
 }
 
 export default function JournalPage() {
@@ -71,6 +97,23 @@ export default function JournalPage() {
     return trimmed.split(/\s+/).length;
   }, [content]);
 
+  const alignmentSnapshot = useMemo(() => {
+    if (entries.length === 0) {
+      return ["Direction", "Friction", "Recovery"].map((state) => ({
+        state: state as AlignmentState,
+        active: false
+      }));
+    }
+
+    const latestEntries = entries.slice(0, 3);
+    const states = latestEntries.map((entry) => inferAlignmentState(entry));
+
+    return ["Direction", "Friction", "Recovery"].map((state) => ({
+      state: state as AlignmentState,
+      active: states.includes(state as AlignmentState)
+    }));
+  }, [entries]);
+
   const onToggleTag = (tag: string) => {
     setSelectedTags((current) => {
       if (current.includes(tag)) {
@@ -112,11 +155,32 @@ export default function JournalPage() {
 
   return (
     <MobileShell>
-      <section className="space-y-4 pb-4">
-        <header className="space-y-1">
+      <section className="space-y-5 pb-5">
+        <header className="space-y-1.5">
           <h1 className="text-2xl font-semibold text-[#003D7C]">Journal</h1>
           <p className="text-sm text-[#8A704C]">Private check-ins for Emotion Capture and Meaning Convergence.</p>
         </header>
+
+        <section className="rounded-2xl border border-[#003D7C]/15 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[#8A704C]">Alignment snapshot</h2>
+            <span className="text-xs text-slate-500">Recent trajectory state</span>
+          </div>
+          <ul className="grid grid-cols-3 gap-2">
+            {alignmentSnapshot.map((item) => (
+              <li
+                key={item.state}
+                className={`rounded-xl border px-2 py-2 text-center text-xs font-semibold ${
+                  item.active
+                    ? "border-[#003D7C]/40 bg-[#003D7C] text-white"
+                    : "border-[#8A704C]/25 bg-[#F7F7F2] text-[#8A704C]"
+                }`}
+              >
+                {item.state}
+              </li>
+            ))}
+          </ul>
+        </section>
 
         <form className="space-y-3 rounded-2xl border border-[#8A704C]/30 bg-[#F7F7F2] p-4" onSubmit={onSave}>
           <label className="block text-sm font-medium text-[#003D7C]" htmlFor="journal-content">
@@ -170,7 +234,7 @@ export default function JournalPage() {
           </div>
         </form>
 
-        <section className="space-y-2">
+        <section className="space-y-2.5">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-[#8A704C]">Recent entries</h2>
 
           {entries.length === 0 ? (
@@ -178,7 +242,7 @@ export default function JournalPage() {
               No entries yet. Your first check-in will appear here.
             </p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-2.5">
               {entries.map((entry) => (
                 <li key={entry.id}>
                   <button
