@@ -52,3 +52,29 @@ body {
   transform-origin: center;
   animation: self-star-drift 1.8s ease-in-out infinite;
 }
+
+.self-star-lock {
+  filter: brightness(1.08);
+}
+
+.self-star-slip {
+  animation-duration: 1.1s;
+}
+
+.self-star-recovery {
+  animation-name: self-star-recovery;
+  animation-duration: 1.6s;
+  animation-timing-function: ease-out;
+}
+
+@keyframes self-star-recovery {
+  0% {
+    transform: scale(0.96);
+  }
+  55% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

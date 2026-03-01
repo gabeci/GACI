@@ -8,11 +8,33 @@ type ChatMessage = {
   content: string;
 };
 
+type AlignmentEventType = "lock" | "slip" | "recovery";
+
+type JournalEntry = {
+  id: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
+  source: "chatbot";
+  eventType?: AlignmentEventType;
+};
+
+const JOURNAL_STORAGE_KEY = "gaci-journal-entries";
+const EVENTS_STORAGE_KEY = "gaci-alignment-events";
+
 const quickPrompts = [
   "I'm overwhelmed and need one grounded next step.",
   "Help me name what I feel and what matters right now.",
   "Give me one alignment action I can do in 10 minutes."
 ];
+
+function inferEventType(text: string): AlignmentEventType | undefined {
+  const lowered = text.toLowerCase();
+  if (["stuck", "overwhelmed", "anxious", "blocked", "slip"].some((word) => lowered.includes(word))) return "slip";
+  if (["recover", "reset", "breathe", "repair"].some((word) => lowered.includes(word))) return "recovery";
+  if (["steady", "aligned", "focused", "grounded", "lock"].some((word) => lowered.includes(word))) return "lock";
+  return undefined;
+}
 
 export default function ChatbotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -25,9 +47,11 @@ export default function ChatbotPage() {
   const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
   const canSend = useMemo(() => draft.trim().length > 0 && !isLoading, [draft, isLoading]);
+  const latestAssistant = useMemo(() => [...messages].reverse().find((message) => message.role === "assistant"), [messages]);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
@@ -35,6 +59,37 @@ export default function ChatbotPage() {
         listRef.current.scrollTop = listRef.current.scrollHeight;
       }
     });
+  };
+
+  const saveAsSpark = () => {
+    if (!latestAssistant?.content) {
+      setToast("No assistant message to save yet.");
+      return;
+    }
+
+    const entry: JournalEntry = {
+      id: crypto.randomUUID(),
+      content: latestAssistant.content,
+      tags: ["Chatbot"],
+      createdAt: new Date().toISOString(),
+      source: "chatbot",
+      eventType: inferEventType(latestAssistant.content)
+    };
+
+    const raw = window.localStorage.getItem(JOURNAL_STORAGE_KEY);
+    const existing = raw ? ((JSON.parse(raw) as JournalEntry[]) ?? []) : [];
+    const next = [entry, ...existing];
+    window.localStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(next));
+
+    if (entry.eventType) {
+      const rawEvents = window.localStorage.getItem(EVENTS_STORAGE_KEY);
+      const events = rawEvents ? (JSON.parse(rawEvents) as Array<{ id: string; eventType: AlignmentEventType; createdAt: string; entryId: string }>) : [];
+      const nextEvents = [{ id: crypto.randomUUID(), eventType: entry.eventType, createdAt: entry.createdAt, entryId: entry.id }, ...events].slice(0, 100);
+      window.localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(nextEvents));
+    }
+
+    setToast("Saved as Spark.");
+    window.setTimeout(() => setToast(null), 1600);
   };
 
   const sendMessage = async (rawText: string) => {
@@ -112,6 +167,17 @@ export default function ChatbotPage() {
           ) : null}
         </div>
 
+        <div className="rounded-xl border border-[#8A704C]/30 bg-white p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8A704C]">Save panel</p>
+          <button
+            type="button"
+            className="min-h-11 w-full rounded-xl bg-[#003D7C] px-4 text-sm font-semibold text-[#F7F7F2]"
+            onClick={saveAsSpark}
+          >
+            Save latest response as Spark
+          </button>
+        </div>
+
         <div className="flex flex-wrap gap-2">
           {quickPrompts.map((prompt) => (
             <button
@@ -127,6 +193,7 @@ export default function ChatbotPage() {
         </div>
 
         {error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p> : null}
+        {toast ? <p className="rounded-xl bg-[#003D7C] px-3 py-2 text-sm text-white">{toast}</p> : null}
 
         <form onSubmit={handleSubmit} className="sticky bottom-0 rounded-2xl bg-white p-2 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
           <div className="flex items-center gap-2 rounded-full border border-[#003D7C]/20 bg-[#F7F7F2] px-3 py-2">
