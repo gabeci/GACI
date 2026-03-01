@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { MobileShell } from "@/components/mobile-shell";
+import { AlignmentEvent, JOURNAL_STORAGE_KEY, readAlignmentEvents } from "@/lib/alignment-events";
 
 type JournalEntry = {
   id: string;
@@ -10,7 +11,6 @@ type JournalEntry = {
   createdAt: string;
 };
 
-const STORAGE_KEY = "gaci-journal-entries";
 const MAX_TAGS = 3;
 const tagOptions = ["Calm", "Anxious", "Grateful", "Focused", "Hopeful", "Overwhelmed"];
 
@@ -23,29 +23,61 @@ function formatDate(value: string) {
   });
 }
 
+function buildWeeklyNarrative(events: AlignmentEvent[]) {
+  if (events.length === 0) {
+    return "This week is still unwritten. Save a Spark from Chatbot to start your alignment story.";
+  }
+
+  const counts = events.reduce(
+    (acc, event) => {
+      acc[event.alignmentSignal] += 1;
+      return acc;
+    },
+    { Lock: 0, Slip: 0, Recovery: 0 }
+  );
+
+  const dominantSignal =
+    (["Lock", "Recovery", "Slip"] as const).find(
+      (signal) => counts[signal] >= counts.Lock && counts[signal] >= counts.Recovery && counts[signal] >= counts.Slip
+    ) ?? "Lock";
+
+  if (dominantSignal === "Lock") {
+    return `You held a steady rhythm this week, with repeated Lock moments that kept your focus coherent. Slips appeared, but your center held and your actions stayed intentional.`;
+  }
+
+  if (dominantSignal === "Recovery") {
+    return `This week reads like resilience in motion: you met disruption and kept choosing Recovery. Each reset deepened trust in your ability to return to alignment.`;
+  }
+
+  return `This week had visible friction, with Slip moments showing where load and uncertainty spiked. Your Recovery events show that you did not stay stuck—you kept finding your way back.`;
+}
+
 export default function JournalPage() {
   const [content, setContent] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [alignmentEvents, setAlignmentEvents] = useState<AlignmentEvent[]>([]);
   const [toast, setToast] = useState("");
   const [activeEntry, setActiveEntry] = useState<JournalEntry | null>(null);
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
+    const raw = window.localStorage.getItem(JOURNAL_STORAGE_KEY);
 
-    if (!raw) {
-      return;
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw) as JournalEntry[];
+        const safeEntries = parsed
+          .filter((entry) => entry.id && entry.content && entry.createdAt)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setEntries(safeEntries);
+      } catch {
+        setEntries([]);
+      }
     }
 
-    try {
-      const parsed = JSON.parse(raw) as JournalEntry[];
-      const safeEntries = parsed
-        .filter((entry) => entry.id && entry.content && entry.createdAt)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setEntries(safeEntries);
-    } catch {
-      setEntries([]);
-    }
+    const events = readAlignmentEvents();
+    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    setAlignmentEvents(events.filter((event) => new Date(event.createdAt).getTime() >= weekAgo));
   }, []);
 
   useEffect(() => {
@@ -70,6 +102,8 @@ export default function JournalPage() {
 
     return trimmed.split(/\s+/).length;
   }, [content]);
+
+  const weeklyNarrative = useMemo(() => buildWeeklyNarrative(alignmentEvents), [alignmentEvents]);
 
   const onToggleTag = (tag: string) => {
     setSelectedTags((current) => {
@@ -103,7 +137,7 @@ export default function JournalPage() {
 
     const nextEntries = [entry, ...entries];
     setEntries(nextEntries);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(nextEntries));
+    window.localStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(nextEntries));
 
     setContent("");
     setSelectedTags([]);
@@ -117,6 +151,11 @@ export default function JournalPage() {
           <h1 className="text-2xl font-semibold text-[#003D7C]">Journal</h1>
           <p className="text-sm text-[#8A704C]">Private check-ins for Emotion Capture and Meaning Convergence.</p>
         </header>
+
+        <section className="rounded-2xl border border-[#003D7C]/20 bg-white p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-[#8A704C]">Weekly report</h2>
+          <p className="mt-2 text-sm leading-6 text-slate-700">{weeklyNarrative}</p>
+        </section>
 
         <form className="space-y-3 rounded-2xl border border-[#8A704C]/30 bg-[#F7F7F2] p-4" onSubmit={onSave}>
           <label className="block text-sm font-medium text-[#003D7C]" htmlFor="journal-content">

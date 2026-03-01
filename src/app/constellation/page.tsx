@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { MobileShell } from "@/components/mobile-shell";
+import { AlignmentSignal, JOURNAL_STORAGE_KEY, STARS_STORAGE_KEY, readAlignmentEvents } from "@/lib/alignment-events";
 
 type JournalEntry = {
   id: string;
@@ -14,9 +15,6 @@ type PositionedEntry = JournalEntry & {
   x: number;
   y: number;
 };
-
-const JOURNAL_STORAGE_KEY = "gaci-journal-entries";
-const STARS_STORAGE_KEY = "gaci-constellation-stars";
 
 function formatDate(value: string) {
   return new Date(value).toLocaleString([], {
@@ -54,9 +52,26 @@ function positionFor(entry: JournalEntry, index: number, total: number): { x: nu
   };
 }
 
+function eventHaloStyle(signal: AlignmentSignal | undefined) {
+  if (signal === "Lock") {
+    return { glow: "rgba(255,240,170,0.95)", radius: 10, ringOpacity: 0.45 };
+  }
+
+  if (signal === "Slip") {
+    return { glow: "rgba(250,160,160,0.8)", radius: 8.5, ringOpacity: 0.2 };
+  }
+
+  if (signal === "Recovery") {
+    return { glow: "rgba(156,236,255,0.88)", radius: 9.5, ringOpacity: 0.3 };
+  }
+
+  return { glow: "rgba(215,230,255,0.7)", radius: 8.5, ringOpacity: 0.2 };
+}
+
 export default function ConstellationPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [starById, setStarById] = useState<Record<string, boolean>>({});
+  const [eventSignalBySparkId, setEventSignalBySparkId] = useState<Record<string, AlignmentSignal>>({});
   const [activeTag, setActiveTag] = useState<string>("All");
   const [activeEntry, setActiveEntry] = useState<JournalEntry | null>(null);
 
@@ -72,20 +87,26 @@ export default function ConstellationPage() {
       }
     }
 
-    if (!rawJournal) {
-      return;
+    if (rawJournal) {
+      try {
+        const parsed = JSON.parse(rawJournal) as JournalEntry[];
+        const safe = parsed
+          .filter((entry) => entry.id && entry.content && entry.createdAt)
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 30);
+        setEntries(safe);
+      } catch {
+        setEntries([]);
+      }
     }
 
-    try {
-      const parsed = JSON.parse(rawJournal) as JournalEntry[];
-      const safe = parsed
-        .filter((entry) => entry.id && entry.content && entry.createdAt)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 30);
-      setEntries(safe);
-    } catch {
-      setEntries([]);
-    }
+    const signalById: Record<string, AlignmentSignal> = {};
+    readAlignmentEvents().forEach((event) => {
+      if (event.sparkId && !signalById[event.sparkId]) {
+        signalById[event.sparkId] = event.alignmentSignal;
+      }
+    });
+    setEventSignalBySparkId(signalById);
   }, []);
 
   const tags = useMemo(() => {
@@ -175,9 +196,36 @@ export default function ConstellationPage() {
 
               {positionedEntries.map((entry) => {
                 const isStar = Boolean(starById[entry.id]);
+                const signal = eventSignalBySparkId[entry.id];
+                const halo = eventHaloStyle(signal);
 
                 return (
                   <g key={entry.id}>
+                    <circle cx={entry.x} cy={entry.y} fill={halo.glow} opacity={halo.ringOpacity} r={halo.radius} />
+                    {signal === "Slip" ? (
+                      <path
+                        d={`M ${entry.x - 10} ${entry.y} q 5 -6 10 0 q 5 6 10 0`}
+                        fill="none"
+                        opacity="0.8"
+                        stroke="#FFCFCF"
+                        strokeWidth="1"
+                      >
+                        <animate
+                          attributeName="d"
+                          dur="1.6s"
+                          repeatCount="indefinite"
+                          values={`M ${entry.x - 10} ${entry.y} q 5 -6 10 0 q 5 6 10 0;
+                                  M ${entry.x - 10} ${entry.y} q 5 6 10 0 q 5 -6 10 0;
+                                  M ${entry.x - 10} ${entry.y} q 5 -6 10 0 q 5 6 10 0`}
+                        />
+                      </path>
+                    ) : null}
+                    {signal === "Recovery" ? (
+                      <circle cx={entry.x} cy={entry.y} fill="none" opacity="0.55" r="6" stroke="#9CEBFF" strokeWidth="1">
+                        <animate attributeName="r" dur="1.4s" repeatCount="indefinite" values="4;11;4" />
+                        <animate attributeName="opacity" dur="1.4s" repeatCount="indefinite" values="0.7;0.15;0.7" />
+                      </circle>
+                    ) : null}
                     <circle
                       cx={entry.x}
                       cy={entry.y}
@@ -187,7 +235,11 @@ export default function ConstellationPage() {
                       stroke={isStar ? "#FFF3CC" : "#ffffff"}
                       strokeWidth="1.5"
                       style={{ cursor: "pointer" }}
-                    />
+                    >
+                      {signal === "Lock" ? (
+                        <animate attributeName="opacity" dur="1.8s" repeatCount="indefinite" values="1;0.75;1" />
+                      ) : null}
+                    </circle>
                   </g>
                 );
               })}
@@ -217,7 +269,10 @@ export default function ConstellationPage() {
             <div className="mb-3 flex flex-wrap gap-2">
               {activeEntry.tags.length > 0 ? (
                 activeEntry.tags.map((tag) => (
-                  <span className="rounded-full bg-[#F7F7F2] px-2.5 py-1 text-xs font-medium text-[#8A704C]" key={`${activeEntry.id}-${tag}`}>
+                  <span
+                    className="rounded-full bg-[#F7F7F2] px-2.5 py-1 text-xs font-medium text-[#8A704C]"
+                    key={`${activeEntry.id}-${tag}`}
+                  >
                     {tag}
                   </span>
                 ))

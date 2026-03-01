@@ -2,10 +2,30 @@
 
 import { FormEvent, useMemo, useRef, useState } from "react";
 import { MobileShell } from "@/components/mobile-shell";
+import {
+  AlignmentEvent,
+  AlignmentSignal,
+  JOURNAL_STORAGE_KEY,
+  STARS_STORAGE_KEY,
+  readAlignmentEvents,
+  writeAlignmentEvents
+} from "@/lib/alignment-events";
 
 type ChatMessage = {
   role: "user" | "assistant";
   content: string;
+  structured?: {
+    meaning: string;
+    alignmentSignal: AlignmentSignal;
+    microAdjustment: string;
+  };
+};
+
+type JournalEntry = {
+  id: string;
+  content: string;
+  tags: string[];
+  createdAt: string;
 };
 
 const quickPrompts = [
@@ -13,6 +33,29 @@ const quickPrompts = [
   "Help me name what I feel and what matters right now.",
   "Give me one alignment action I can do in 10 minutes."
 ];
+
+function readJournalEntries(): JournalEntry[] {
+  const raw = window.localStorage.getItem(JOURNAL_STORAGE_KEY);
+  if (!raw) return [];
+
+  try {
+    return JSON.parse(raw) as JournalEntry[];
+  } catch {
+    return [];
+  }
+}
+
+function formatStructuredReply(structured: ChatMessage["structured"]) {
+  if (!structured) {
+    return "";
+  }
+
+  return [
+    `Meaning: ${structured.meaning}`,
+    `Alignment Signal: ${structured.alignmentSignal}`,
+    `Micro Adjustment: ${structured.microAdjustment}`
+  ].join("\n");
+}
 
 export default function ChatbotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -25,9 +68,16 @@ export default function ChatbotPage() {
   const [draft, setDraft] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveSignal, setSaveSignal] = useState<AlignmentSignal>("Lock");
+  const [toast, setToast] = useState("");
   const listRef = useRef<HTMLDivElement>(null);
 
   const canSend = useMemo(() => draft.trim().length > 0 && !isLoading, [draft, isLoading]);
+
+  const latestStructuredReply = useMemo(
+    () => [...messages].reverse().find((message) => message.structured)?.structured,
+    [messages]
+  );
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
@@ -35,6 +85,46 @@ export default function ChatbotPage() {
         listRef.current.scrollTop = listRef.current.scrollHeight;
       }
     });
+  };
+
+  const saveAlignment = (promotedToStar: boolean) => {
+    if (!latestStructuredReply) {
+      return;
+    }
+
+    const sparkId = crypto.randomUUID();
+    const createdAt = new Date().toISOString();
+    const entry: JournalEntry = {
+      id: sparkId,
+      content: `${latestStructuredReply.meaning}\n\nMicro adjustment: ${latestStructuredReply.microAdjustment}`,
+      tags: [saveSignal],
+      createdAt
+    };
+
+    const journalEntries = [entry, ...readJournalEntries()];
+    window.localStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(journalEntries));
+
+    if (promotedToStar) {
+      const rawStars = window.localStorage.getItem(STARS_STORAGE_KEY);
+      const starById = rawStars ? (JSON.parse(rawStars) as Record<string, boolean>) : {};
+      const nextStarById = { ...starById, [sparkId]: true };
+      window.localStorage.setItem(STARS_STORAGE_KEY, JSON.stringify(nextStarById));
+    }
+
+    const event: AlignmentEvent = {
+      id: crypto.randomUUID(),
+      createdAt,
+      source: "chat",
+      sparkId,
+      meaning: latestStructuredReply.meaning,
+      microAdjustment: latestStructuredReply.microAdjustment,
+      alignmentSignal: saveSignal,
+      promotedToStar
+    };
+
+    writeAlignmentEvents([event, ...readAlignmentEvents()]);
+    setToast(promotedToStar ? "Saved and promoted to Star." : "Saved as Spark.");
+    window.setTimeout(() => setToast(""), 1800);
   };
 
   const sendMessage = async (rawText: string) => {
@@ -59,14 +149,20 @@ export default function ChatbotPage() {
         throw new Error("Could not get a response. Please try again.");
       }
 
-      const data = (await response.json()) as { reply?: string; error?: string };
-      const reply = data.reply?.trim();
+      const data = (await response.json()) as {
+        reply?: { meaning: string; alignmentSignal: AlignmentSignal; microAdjustment: string };
+        error?: string;
+      };
 
-      if (!reply) {
+      if (!data.reply) {
         throw new Error(data.error ?? "No assistant response returned.");
       }
 
-      setMessages((current) => [...current, { role: "assistant", content: reply }]);
+      setMessages((current) => [
+        ...current,
+        { role: "assistant", structured: data.reply, content: formatStructuredReply(data.reply) }
+      ]);
+      setSaveSignal(data.reply.alignmentSignal);
       scrollToBottom();
     } catch (caughtError) {
       const message =
@@ -96,7 +192,7 @@ export default function ChatbotPage() {
             return (
               <div key={`${message.role}-${index}`} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                 <p
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
+                  className={`max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
                     isUser ? "rounded-br-md bg-[#003D7C] text-[#F7F7F2]" : "rounded-bl-md bg-white text-[#003D7C]"
                   }`}
                 >
@@ -111,6 +207,42 @@ export default function ChatbotPage() {
             </div>
           ) : null}
         </div>
+
+        {latestStructuredReply ? (
+          <section className="space-y-3 rounded-2xl border border-[#8A704C]/30 bg-white p-4">
+            <h2 className="text-sm font-semibold text-[#003D7C]">Save alignment event</h2>
+            <label className="block text-xs font-medium uppercase tracking-wide text-[#8A704C]" htmlFor="event-type">
+              Select event type confirmation
+            </label>
+            <select
+              className="w-full rounded-xl border border-[#003D7C]/20 bg-[#F7F7F2] px-3 py-2 text-sm text-[#003D7C]"
+              id="event-type"
+              onChange={(event) => setSaveSignal(event.target.value as AlignmentSignal)}
+              value={saveSignal}
+            >
+              <option value="Lock">Lock</option>
+              <option value="Slip">Slip</option>
+              <option value="Recovery">Recovery</option>
+            </select>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                className="min-h-11 rounded-xl border border-[#003D7C]/30 bg-white px-3 text-sm font-semibold text-[#003D7C]"
+                onClick={() => saveAlignment(false)}
+                type="button"
+              >
+                Save as Spark
+              </button>
+              <button
+                className="min-h-11 rounded-xl bg-[#003D7C] px-3 text-sm font-semibold text-white"
+                onClick={() => saveAlignment(true)}
+                type="button"
+              >
+                Promote to Star
+              </button>
+            </div>
+          </section>
+        ) : null}
 
         <div className="flex flex-wrap gap-2">
           {quickPrompts.map((prompt) => (
@@ -127,6 +259,8 @@ export default function ChatbotPage() {
         </div>
 
         {error ? <p className="rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p> : null}
+
+        {toast ? <p className="rounded-xl bg-slate-900 px-3 py-2 text-sm text-white">{toast}</p> : null}
 
         <form onSubmit={handleSubmit} className="sticky bottom-0 rounded-2xl bg-white p-2 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
           <div className="flex items-center gap-2 rounded-full border border-[#003D7C]/20 bg-[#F7F7F2] px-3 py-2">
