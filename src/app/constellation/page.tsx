@@ -3,11 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { MobileShell } from "@/components/mobile-shell";
 
+type AlignmentEventType = "lock" | "slip" | "recovery";
+
 type JournalEntry = {
   id: string;
   content: string;
   tags: string[];
   createdAt: string;
+  source?: "journal" | "chatbot";
+  eventType?: AlignmentEventType;
+};
+
+type AlignmentEvent = {
+  id: string;
+  eventType: AlignmentEventType;
+  createdAt: string;
+  entryId?: string;
 };
 
 type PositionedEntry = JournalEntry & {
@@ -18,6 +29,7 @@ type PositionedEntry = JournalEntry & {
 
 const JOURNAL_STORAGE_KEY = "gaci-journal-entries";
 const STARS_STORAGE_KEY = "gaci-constellation-stars";
+const EVENTS_STORAGE_KEY = "gaci-alignment-events";
 const CENTER = 150;
 
 function formatDate(value: string) {
@@ -56,38 +68,103 @@ function positionFor(entry: JournalEntry, index: number, total: number): { x: nu
   };
 }
 
+function inferEventType(entry: JournalEntry): AlignmentEventType | undefined {
+  if (entry.eventType) {
+    return entry.eventType;
+  }
+
+  const text = `${entry.content} ${entry.tags.join(" ")}`.toLowerCase();
+
+  if (["stuck", "overwhelmed", "anxious", "heavy", "blocked", "slip"].some((word) => text.includes(word))) {
+    return "slip";
+  }
+
+  if (["recover", "reset", "again", "breathe", "pause", "repair"].some((word) => text.includes(word))) {
+    return "recovery";
+  }
+
+  if (["focused", "steady", "aligned", "clear", "grounded", "lock"].some((word) => text.includes(word))) {
+    return "lock";
+  }
+
+  return undefined;
+}
+
 export default function ConstellationPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [starById, setStarById] = useState<Record<string, boolean>>({});
   const [activeTag, setActiveTag] = useState<string>("All");
   const [activeEntry, setActiveEntry] = useState<JournalEntry | null>(null);
+  const [selfEventState, setSelfEventState] = useState<AlignmentEventType | null>(null);
 
   useEffect(() => {
-    const rawJournal = window.localStorage.getItem(JOURNAL_STORAGE_KEY);
-    const rawStars = window.localStorage.getItem(STARS_STORAGE_KEY);
+    const load = () => {
+      const rawJournal = window.localStorage.getItem(JOURNAL_STORAGE_KEY);
+      const rawStars = window.localStorage.getItem(STARS_STORAGE_KEY);
+      const rawEvents = window.localStorage.getItem(EVENTS_STORAGE_KEY);
 
-    if (rawStars) {
-      try {
-        setStarById(JSON.parse(rawStars) as Record<string, boolean>);
-      } catch {
-        setStarById({});
+      if (rawStars) {
+        try {
+          setStarById(JSON.parse(rawStars) as Record<string, boolean>);
+        } catch {
+          setStarById({});
+        }
       }
-    }
 
-    if (!rawJournal) {
-      return;
-    }
+      if (rawJournal) {
+        try {
+          const parsed = JSON.parse(rawJournal) as JournalEntry[];
+          const safe = parsed
+            .filter((entry) => entry.id && entry.content && entry.createdAt)
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 30);
+          setEntries(safe);
+        } catch {
+          setEntries([]);
+        }
+      }
 
-    try {
-      const parsed = JSON.parse(rawJournal) as JournalEntry[];
-      const safe = parsed
-        .filter((entry) => entry.id && entry.content && entry.createdAt)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 30);
-      setEntries(safe);
-    } catch {
-      setEntries([]);
-    }
+      const latestEntryEvent = rawJournal
+        ? (() => {
+            try {
+              const parsed = JSON.parse(rawJournal) as JournalEntry[];
+              return parsed
+                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .map((entry) => inferEventType(entry))
+                .find(Boolean);
+            } catch {
+              return undefined;
+            }
+          })()
+        : undefined;
+
+      if (rawEvents) {
+        try {
+          const parsedEvents = JSON.parse(rawEvents) as AlignmentEvent[];
+          const recentEvent = parsedEvents
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .find((event) => event.eventType);
+
+          setSelfEventState((recentEvent?.eventType ?? latestEntryEvent ?? null) as AlignmentEventType | null);
+          return;
+        } catch {
+          setSelfEventState((latestEntryEvent ?? null) as AlignmentEventType | null);
+          return;
+        }
+      }
+
+      setSelfEventState((latestEntryEvent ?? null) as AlignmentEventType | null);
+    };
+
+    load();
+    const onStorage = () => load();
+    window.addEventListener("storage", onStorage);
+    window.addEventListener("focus", onStorage);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("focus", onStorage);
+    };
   }, []);
 
   const tags = useMemo(() => {
@@ -118,6 +195,16 @@ export default function ConstellationPage() {
       return next;
     });
   };
+
+  const selfClasses = `self-star-drift ${
+    selfEventState === "lock"
+      ? "self-star-lock"
+      : selfEventState === "slip"
+        ? "self-star-slip"
+        : selfEventState === "recovery"
+          ? "self-star-recovery"
+          : ""
+  }`;
 
   return (
     <MobileShell>
@@ -158,13 +245,13 @@ export default function ConstellationPage() {
             <svg aria-label="Constellation map" className="h-[320px] w-full" viewBox="0 0 300 300">
               <defs>
                 <radialGradient id="selfGlow" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#FFE7A8" stopOpacity="0.95" />
-                  <stop offset="55%" stopColor="#FFD166" stopOpacity="0.42" />
-                  <stop offset="100%" stopColor="#FFD166" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#8A704C" stopOpacity="0.95" />
+                  <stop offset="55%" stopColor="#8A704C" stopOpacity="0.42" />
+                  <stop offset="100%" stopColor="#8A704C" stopOpacity="0" />
                 </radialGradient>
                 <radialGradient id="fieldGradient" cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor="#D7E6FF" stopOpacity="0.3" />
-                  <stop offset="100%" stopColor="#D7E6FF" stopOpacity="0" />
+                  <stop offset="0%" stopColor="#F7F7F2" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#F7F7F2" stopOpacity="0" />
                 </radialGradient>
               </defs>
 
@@ -178,10 +265,10 @@ export default function ConstellationPage() {
                 />
               ))}
 
-              <g className="self-star-drift">
-                <circle className="self-star-pulse" cx={CENTER} cy={CENTER} fill="#FFD166" opacity="0.45" r="28" />
+              <g className={selfClasses}>
+                <circle className="self-star-pulse" cx={CENTER} cy={CENTER} fill="#8A704C" opacity="0.45" r="28" />
                 <circle cx={CENTER} cy={CENTER} fill="url(#selfGlow)" r="22" />
-                <circle cx={CENTER} cy={CENTER} fill="#FFD166" r="11" stroke="#FFF3CC" strokeWidth="2" />
+                <circle cx={CENTER} cy={CENTER} fill="#8A704C" r="11" stroke="#F7F7F2" strokeWidth="2" />
               </g>
 
               {positionedEntries.map((entry) => {
@@ -192,11 +279,11 @@ export default function ConstellationPage() {
                     <circle
                       cx={entry.x}
                       cy={entry.y}
-                      fill={isStar ? "#FFD166" : "#D7E6FF"}
+                      fill={isStar ? "#8A704C" : "#003D7C"}
                       onClick={() => setActiveEntry(entry)}
                       r={isStar ? 7 : 4}
-                      stroke={isStar ? "#FFF3CC" : "#ffffff"}
-                      strokeWidth={isStar ? 2 : 1.4}
+                      stroke={isStar ? "#F7F7F2" : "#ffffff"}
+                      strokeWidth={isStar ? 2 : 1.2}
                       style={{ cursor: "pointer" }}
                     />
                     {isStar ? (
@@ -218,7 +305,8 @@ export default function ConstellationPage() {
           )}
 
           <div className="mt-3 rounded-2xl border border-white/20 bg-white/10 px-3 py-2 text-xs text-white/90">
-            Self Star anchors the field. Sparks cluster by shared felt-state gravity. Promoted Stars hold brighter pull.
+            <p>Self Star anchors the field. Sparks cluster by shared felt-state gravity. Promoted Stars hold brighter pull.</p>
+            <p className="mt-1 text-white/80">Direction/Friction/Recovery reactions appear in your Self Star field.</p>
           </div>
         </div>
       </section>
@@ -257,9 +345,7 @@ export default function ConstellationPage() {
 
             <button
               className={`min-h-11 w-full rounded-xl px-4 text-sm font-semibold ${
-                starById[activeEntry.id]
-                  ? "bg-[#003D7C] text-white"
-                  : "border border-[#003D7C]/30 bg-white text-[#003D7C]"
+                starById[activeEntry.id] ? "bg-[#003D7C] text-white" : "border border-[#003D7C]/30 bg-white text-[#003D7C]"
               }`}
               onClick={() => toggleStar(activeEntry.id)}
               type="button"

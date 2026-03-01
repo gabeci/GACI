@@ -19,6 +19,14 @@ Meaning: ...
 Alignment Action: ...
 Why: ...`;
 
+function mockReply(userText: string) {
+  const text = userText.toLowerCase();
+  const emotion = text.includes("overwhelmed") || text.includes("anxious") ? "overloaded and tense" : "emotionally activated";
+  const action = text.includes("sleep") ? "Set a 10-minute wind-down timer and put your phone outside reach." : "Take one 5-minute reset: one glass of water, one deep breath cycle, then write one next step.";
+
+  return `Meaning: You're feeling ${emotion}, and your system is asking for a small return to steadiness.\nAlignment Action: ${action}\nWhy: One grounded action lowers friction now and helps your next choice come from intention, not spiral.`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as { messages?: ChatMessage[] };
@@ -28,9 +36,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "messages are required" }, { status: 400 });
     }
 
+    const latestUserMessage = [...messages].reverse().find((message) => message.role === "user")?.content ?? "";
     const apiKey = process.env.OPENAI_API_KEY;
+
     if (!apiKey) {
-      return NextResponse.json({ error: "OPENAI_API_KEY is not configured" }, { status: 500 });
+      return NextResponse.json({ reply: mockReply(latestUserMessage), mode: "mock" });
     }
 
     const upstream = await fetch("https://api.openai.com/v1/responses", {
@@ -70,7 +80,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No response text returned" }, { status: 502 });
     }
 
-    return NextResponse.json({ reply });
+    return NextResponse.json({ reply, mode: "openai" });
   } catch {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
