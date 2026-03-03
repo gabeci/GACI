@@ -21,6 +21,7 @@ type JournalEntry = {
 
 const JOURNAL_STORAGE_KEY = "gaci-journal-entries";
 const EVENTS_STORAGE_KEY = "gaci-alignment-events";
+const STARS_STORAGE_KEY = "gaci-constellation-stars";
 
 const quickPrompts = [
   "I'm overwhelmed and need one grounded next step.",
@@ -52,6 +53,15 @@ export default function ChatbotPage() {
 
   const canSend = useMemo(() => draft.trim().length > 0 && !isLoading, [draft, isLoading]);
   const latestAssistant = useMemo(() => [...messages].reverse().find((message) => message.role === "assistant"), [messages]);
+  const latestAssistantIndex = useMemo(() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      if (messages[index]?.role === "assistant") {
+        return index;
+      }
+    }
+
+    return -1;
+  }, [messages]);
 
   const scrollToBottom = () => {
     requestAnimationFrame(() => {
@@ -61,7 +71,7 @@ export default function ChatbotPage() {
     });
   };
 
-  const saveAsSpark = () => {
+  const saveEntry = (promoteToStar: boolean) => {
     if (!latestAssistant?.content) {
       setToast("No assistant message to save yet.");
       return;
@@ -81,6 +91,13 @@ export default function ChatbotPage() {
     const next = [entry, ...existing];
     window.localStorage.setItem(JOURNAL_STORAGE_KEY, JSON.stringify(next));
 
+    if (promoteToStar) {
+      const rawStars = window.localStorage.getItem(STARS_STORAGE_KEY);
+      const stars = rawStars ? (JSON.parse(rawStars) as Record<string, boolean>) : {};
+      stars[entry.id] = true;
+      window.localStorage.setItem(STARS_STORAGE_KEY, JSON.stringify(stars));
+    }
+
     if (entry.eventType) {
       const rawEvents = window.localStorage.getItem(EVENTS_STORAGE_KEY);
       const events = rawEvents ? (JSON.parse(rawEvents) as Array<{ id: string; eventType: AlignmentEventType; createdAt: string; entryId: string }>) : [];
@@ -88,7 +105,7 @@ export default function ChatbotPage() {
       window.localStorage.setItem(EVENTS_STORAGE_KEY, JSON.stringify(nextEvents));
     }
 
-    setToast("Saved as Spark.");
+    setToast(promoteToStar ? "Promoted to Star." : "Saved as Spark.");
     window.setTimeout(() => setToast(null), 1600);
   };
 
@@ -148,9 +165,11 @@ export default function ChatbotPage() {
         <div ref={listRef} className="flex-1 space-y-4 overflow-y-auto rounded-2xl bg-[#F7F7F2] p-4">
           {messages.map((message, index) => {
             const isUser = message.role === "user";
+            const isLatestAssistant = message.role === "assistant" && index === latestAssistantIndex;
             return (
               <div key={`${message.role}-${index}`} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
                 <p
+                  data-testid={isLatestAssistant ? "assistant-reply" : undefined}
                   className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
                     isUser ? "rounded-br-md bg-[#003D7C] text-[#F7F7F2]" : "rounded-bl-md bg-white text-[#003D7C]"
                   }`}
@@ -167,15 +186,26 @@ export default function ChatbotPage() {
           ) : null}
         </div>
 
-        <div className="rounded-xl border border-[#8A704C]/30 bg-white p-3">
+        <div className="rounded-xl border border-[#8A704C]/30 bg-white p-3" data-testid="save-panel">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#8A704C]">Save panel</p>
-          <button
-            type="button"
-            className="min-h-11 w-full rounded-xl bg-[#003D7C] px-4 text-sm font-semibold text-[#F7F7F2]"
-            onClick={saveAsSpark}
-          >
-            Save latest response as Spark
-          </button>
+          <div className="grid gap-2">
+            <button
+              data-testid="save-spark"
+              type="button"
+              className="min-h-11 w-full rounded-xl bg-[#003D7C] px-4 text-sm font-semibold text-[#F7F7F2]"
+              onClick={() => saveEntry(false)}
+            >
+              Save latest response as Spark
+            </button>
+            <button
+              data-testid="save-promote-star"
+              type="button"
+              className="min-h-11 w-full rounded-xl border border-[#003D7C]/30 bg-white px-4 text-sm font-semibold text-[#003D7C]"
+              onClick={() => saveEntry(true)}
+            >
+              Promote latest response to Star
+            </button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -198,6 +228,7 @@ export default function ChatbotPage() {
         <form onSubmit={handleSubmit} className="sticky bottom-0 rounded-2xl bg-white p-2 shadow-[0_-2px_12px_rgba(0,0,0,0.08)]">
           <div className="flex items-center gap-2 rounded-full border border-[#003D7C]/20 bg-[#F7F7F2] px-3 py-2">
             <input
+              data-testid="chat-input"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               placeholder="Share what you feel right now..."
@@ -205,6 +236,7 @@ export default function ChatbotPage() {
               disabled={isLoading}
             />
             <button
+              data-testid="chat-send"
               type="submit"
               className="rounded-full bg-[#003D7C] px-4 py-2 text-sm font-medium text-[#F7F7F2] disabled:opacity-50"
               disabled={!canSend}

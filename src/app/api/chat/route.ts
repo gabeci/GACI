@@ -21,10 +21,16 @@ Why: ...`;
 
 function mockReply(userText: string) {
   const text = userText.toLowerCase();
+  const personaMatch = userText.match(/\[[^\]]+\]/)?.[0] ?? "";
+  const personaPrefix = personaMatch ? `${personaMatch} ` : "";
   const emotion = text.includes("overwhelmed") || text.includes("anxious") ? "overloaded and tense" : "emotionally activated";
-  const action = text.includes("sleep") ? "Set a 10-minute wind-down timer and put your phone outside reach." : "Take one 5-minute reset: one glass of water, one deep breath cycle, then write one next step.";
+  const action = text.includes("sleep")
+    ? "Set a 10-minute wind-down timer and put your phone outside reach."
+    : "Take one 5-minute reset: one glass of water, one deep breath cycle, then write one next step.";
 
-  return `Meaning: You're feeling ${emotion}, and your system is asking for a small return to steadiness.\nAlignment Action: ${action}\nWhy: One grounded action lowers friction now and helps your next choice come from intention, not spiral.`;
+  return `Meaning: ${personaPrefix}You're feeling ${emotion}, and your system is asking for a small return to steadiness.
+Alignment Action: ${action}
+Why: One grounded action lowers friction now and helps your next choice come from intention, not spiral.`;
 }
 
 export async function POST(request: NextRequest) {

@@ -236,7 +236,7 @@ export default function ConstellationPage() {
           })}
         </ul>
 
-        <div className="rounded-3xl border border-[#003D7C]/20 bg-gradient-to-br from-[#002955] via-[#003D7C] to-[#285A95] p-4 text-white shadow-sm">
+        <div className="rounded-3xl border border-[#003D7C]/20 bg-gradient-to-br from-[#002955] via-[#003D7C] to-[#285A95] p-4 text-white shadow-sm" data-testid="constellation-view">
           {positionedEntries.length === 0 ? (
             <p className="rounded-2xl border border-white/30 bg-white/10 p-6 text-sm text-white/90">
               No Sparks yet for this filter. Add Journal entries to generate your map.
@@ -277,6 +277,7 @@ export default function ConstellationPage() {
                 return (
                   <g key={entry.id}>
                     <circle
+                      data-testid={isStar ? "node-star" : "node-spark"}
                       cx={entry.x}
                       cy={entry.y}
                       fill={isStar ? "#8A704C" : "#003D7C"}

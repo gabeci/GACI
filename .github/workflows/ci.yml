@@ -19,7 +19,15 @@ jobs:
           node-version: "20"
 
       - name: Install
-        run: npm install --no-audit --no-fund
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
 
       - name: Build
         run: npm run build
+
+      - name: E2E
+        run: npm run test:e2e
+        env:
+          BASE_URL: http://localhost:3000
