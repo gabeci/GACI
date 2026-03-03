@@ -304,7 +304,7 @@ export default function JournalPage() {
           </div>
         </form>
 
-        <section className="space-y-2.5">
+        <section className="space-y-2.5" data-testid="journal-list">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-[#8A704C]">Recent entries</h2>
 
           {entries.length === 0 ? (
